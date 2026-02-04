@@ -354,6 +354,17 @@ const tableOfContents = computed(() => {
 
 onMounted(() => {
   markdownStore.initialize()
+  // 初始化时应用代码块样式
+  nextTick(() => {
+    applyCodeBlockStyles()
+  })
+})
+
+// 监听主题变化，重新应用样式
+watch(() => markdownStore.currentTheme, () => {
+  nextTick(() => {
+    applyCodeBlockStyles()
+  })
 })
 
 const handleInput = (event) => {
@@ -655,6 +666,62 @@ watch(wordWrap, (wrap) => {
     textareaRef.value.style.whiteSpace = wrap ? 'pre-wrap' : 'pre'
   }
 })
+
+// 监听预览内容变化，强制应用代码块阴影
+watch(previewHtml, () => {
+  nextTick(() => {
+    applyCodeBlockStyles()
+  })
+})
+
+// 强制应用代码块阴影样式的函数
+const applyCodeBlockStyles = () => {
+  if (!previewRef.value) return
+  
+  const codeBlocks = previewRef.value.querySelectorAll('pre')
+  codeBlocks.forEach(block => {
+    // 强制应用阴影样式
+    block.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)'
+    block.style.border = '1px solid rgba(0, 0, 0, 0.1)'
+    
+    // 根据当前主题应用特定的阴影
+    const currentTheme = markdownStore.currentTheme
+    switch(currentTheme) {
+      case 'github':
+        block.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05)'
+        break
+      case 'material':
+        block.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1)'
+        break
+      case 'dracula':
+        block.style.boxShadow = '0 4px 12px rgba(68, 71, 90, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2)'
+        break
+      case 'solarized':
+        block.style.boxShadow = '0 4px 12px rgba(0, 43, 54, 0.6), 0 2px 4px rgba(0, 0, 0, 0.3)'
+        break
+      case 'nord':
+        block.style.boxShadow = '0 4px 12px rgba(59, 66, 82, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2)'
+        break
+      case 'monokai':
+        block.style.boxShadow = '0 4px 12px rgba(73, 72, 62, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3)'
+        break
+      case 'minimal':
+        block.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.05)'
+        break
+      case 'academic':
+        block.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04)'
+        break
+      default:
+        block.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)'
+    }
+  })
+  
+  // 也为行内代码添加轻微阴影
+  const inlineCodes = previewRef.value.querySelectorAll('code:not(pre code)')
+  inlineCodes.forEach(code => {
+    code.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'
+  })
+}
 </script>
 
 <style scoped>
@@ -878,6 +945,9 @@ watch(wordWrap, (wrap) => {
   border-radius: 8px;
   margin: 16px 0;
   background: var(--color-code-block-background);
+  /* 强制应用阴影效果 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .markdown-preview pre code {
@@ -894,6 +964,8 @@ watch(wordWrap, (wrap) => {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.9em;
   background: var(--color-code-background);
+  /* 行内代码也添加轻微阴影 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* 空状态样式 */
@@ -943,6 +1015,8 @@ watch(wordWrap, (wrap) => {
   border-radius: 6px; 
   overflow-x: auto; 
   border: 1px solid #d0d7de;
+  /* GitHub 主题阴影效果 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05) !important;
 }
 .markdown-preview.theme-github pre code { background: none !important; padding: 0; color: #24292f !important; }
 .markdown-preview.theme-github blockquote { 
@@ -987,7 +1061,7 @@ watch(wordWrap, (wrap) => {
   color: #eeffff !important; 
   padding: 16px; 
   border-radius: 4px; 
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 .markdown-preview.theme-material pre code { background: none !important; color: #eeffff !important; padding: 0; }
 .markdown-preview.theme-material blockquote { 
@@ -1023,6 +1097,8 @@ watch(wordWrap, (wrap) => {
   padding: 16px; 
   border-radius: 8px; 
   border: 1px solid #6272a4;
+  /* Dracula 主题阴影效果 */
+  box-shadow: 0 4px 12px rgba(68, 71, 90, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
 }
 .markdown-preview.theme-dracula pre code { background: none !important; color: #f8f8f2 !important; }
 .markdown-preview.theme-dracula blockquote { 
@@ -1056,6 +1132,8 @@ watch(wordWrap, (wrap) => {
   color: #839496 !important; 
   padding: 16px; 
   border-radius: 6px; 
+  /* Solarized 主题阴影效果 */
+  box-shadow: 0 4px 12px rgba(0, 43, 54, 0.6), 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 .markdown-preview.theme-solarized pre code { background: none !important; color: #839496 !important; }
 .markdown-preview.theme-solarized blockquote { 
@@ -1088,6 +1166,8 @@ watch(wordWrap, (wrap) => {
   padding: 16px; 
   border-radius: 8px; 
   border: 1px solid #4c566a;
+  /* Nord 主题阴影效果 */
+  box-shadow: 0 4px 12px rgba(59, 66, 82, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
 }
 .markdown-preview.theme-nord pre code { background: none !important; color: #d8dee9 !important; }
 .markdown-preview.theme-nord blockquote { 
@@ -1119,6 +1199,8 @@ watch(wordWrap, (wrap) => {
   color: #f8f8f2 !important;
   padding: 16px; 
   border-radius: 6px; 
+  /* Monokai 主题阴影效果 */
+  box-shadow: 0 4px 12px rgba(73, 72, 62, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 .markdown-preview.theme-monokai pre code { background: none !important; color: #f8f8f2 !important; }
 .markdown-preview.theme-monokai blockquote { 
@@ -1160,6 +1242,8 @@ watch(wordWrap, (wrap) => {
   border-left: 4px solid #ddd; 
   background-image: linear-gradient(to right, #f4f4f4 0%, #f4f4f4 100%);
   margin: 1.5em 0;
+  /* Minimal 主题阴影效果 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
 .markdown-preview.theme-minimal pre code { background: none !important; color: #333 !important; }
 .markdown-preview.theme-minimal blockquote { 
@@ -1215,6 +1299,8 @@ watch(wordWrap, (wrap) => {
   margin: 1.5em 0;
   font-size: 0.9em;
   border-radius: 6px;
+  /* Academic 主题阴影效果 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 .markdown-preview.theme-academic pre code { background: none !important; color: #000 !important; }
 .markdown-preview.theme-academic blockquote { 
@@ -1244,7 +1330,14 @@ watch(wordWrap, (wrap) => {
 .markdown-preview h2 { font-size: 1.5em; }
 .markdown-preview p { margin: 1em 0; }
 .markdown-preview code { background: var(--color-code-background); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
-.markdown-preview pre { background: var(--color-code-block-background); padding: 16px; border-radius: 8px; overflow-x: auto; }
+.markdown-preview pre { 
+  background: var(--color-code-block-background); 
+  padding: 16px; 
+  border-radius: 8px; 
+  overflow-x: auto; 
+  /* 确保所有代码块都有阴影效果 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
 .markdown-preview pre code { background: none; padding: 0; }
 .markdown-preview blockquote { border-left: 4px solid var(--color-primary); margin: 0; padding-left: 16px; color: var(--color-text-secondary); font-style: italic; }
 .markdown-preview img { max-width: 100%; border-radius: 8px; }

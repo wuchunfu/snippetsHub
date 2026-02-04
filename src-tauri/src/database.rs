@@ -360,7 +360,7 @@ impl Database {
 
     pub async fn create_snippet(&self, req: CreateSnippetRequest) -> Result<CodeSnippet, String> {
         let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now().timestamp_millis();
         let tags_json = serde_json::to_string(&req.tags).unwrap_or("[]".to_string());
 
         sqlx::query(
@@ -458,7 +458,7 @@ impl Database {
     }
 
     pub async fn update_snippet(&self, req: UpdateSnippetRequest) -> Result<CodeSnippet, String> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now().timestamp_millis();
 
         // First get the current snippet to fill in missing fields
         let current = self
@@ -585,7 +585,7 @@ impl Database {
         parent_id: Option<String>,
     ) -> Result<Folder, String> {
         let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now().timestamp_millis();
 
         sqlx::query("INSERT INTO folders (id, name, parent_id, created_at) VALUES (?, ?, ?, ?)")
             .bind(&id)
@@ -1042,7 +1042,7 @@ impl Database {
 
     pub async fn create_todo(&self, req: CreateTodoRequest) -> Result<Todo, String> {
         let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now().timestamp_millis(); // 使用毫秒级时间戳
         let dependencies_json = serde_json::to_string(&req.dependencies.unwrap_or_default())
             .map_err(|e| format!("Failed to serialize dependencies: {}", e))?;
 
@@ -1179,7 +1179,7 @@ impl Database {
     }
 
     pub async fn update_todo(&self, req: UpdateTodoRequest) -> Result<Todo, String> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now().timestamp_millis();
 
         // Simple approach: update all fields that are provided
         let mut sql_parts = Vec::new();
@@ -1378,7 +1378,7 @@ impl Database {
         &self,
         operation: BatchTodoOperation,
     ) -> Result<Vec<Todo>, String> {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now().timestamp_millis();
 
         match operation.operation.as_str() {
             "complete" => {
@@ -1623,7 +1623,7 @@ impl Database {
 
     pub async fn create_todo_tag(&self, req: CreateTodoTagRequest) -> Result<TodoTag, String> {
         let id = uuid::Uuid::new_v4().to_string();
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now().timestamp_millis();
 
         // Get color info from predefined colors
         let color_info = self.get_tag_color_info(&req.color_id)?;

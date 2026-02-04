@@ -5,7 +5,11 @@ SnippetsHub 是一款基于 **Tauri** 和 **Vue 3** 构建的现代化跨平台�
 借助 Rust 的高性能后端，SnippetsHub 能够在 macOS 和 Windows 上提供极致流畅的体验。
 
 # 页面介绍
-
+## 提供多种主题颜色
+![Theme Preview](./imgs/snappestHub_theme.png)
+## 代码片段管理
+![Snippet Management](./imgs/snappestHub_main.png)
+## 任务管理
 
 
 ## 核心特性
