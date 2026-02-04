@@ -133,7 +133,13 @@
 
     <div class="todo-actions">
       <!-- Time Tracking -->
-      <div v-if="todo.status === 'in_progress'" class="time-tracking">
+      <div v-if="todo.status === 'in_progress' && isTimeTracking(todo.id)" class="time-tracking">
+        <span class="tracking-time">{{ getCurrentTrackingTime(todo.id).toFixed(2) }}h</span>
+        <button @click="$emit('stop-tracking', todo.id)" class="btn-time tracking" title="停止计时">
+          <Square :size="14" />
+        </button>
+      </div>
+      <div v-else-if="todo.status === 'in_progress'" class="time-tracking">
         <button @click="$emit('stop-tracking', todo.id)" class="btn-time" title="停止计时">
           <Square :size="14" />
         </button>
@@ -166,7 +172,10 @@ import {
 } from 'lucide-vue-next'
 import { formatRelativeTime } from '../utils'
 import { PRIORITY_LABELS } from '../constants'
+import { useTodoStore } from '../stores/todoStore'
 import dayjs from 'dayjs'
+
+const todoStore = useTodoStore()
 
 const props = defineProps({
   todo: {
@@ -241,6 +250,14 @@ const getProgressPercentage = () => {
   }
   
   return 0
+}
+
+const isTimeTracking = (todoId) => {
+  return todoStore.isTimeTracking(todoId)
+}
+
+const getCurrentTrackingTime = (todoId) => {
+  return todoStore.getCurrentTrackingTime(todoId)
 }
 </script>
 

@@ -531,23 +531,62 @@ export const useTodoStore = defineStore('todo', () => {
   }
 
   // 时间跟踪
+  const timeTrackingState = ref({}) // 存储每个任务的开始时间
+
   const startTimeTracking = async (taskId) => {
     const task = todos.value.find(t => t.id === taskId)
     if (!task) throw new Error('任务不存在')
 
-    // 在实际实现中，这里会记录开始时间
-    // 目前简化为更新状态
+    // 记录开始时间
+    timeTrackingState.value[taskId] = Date.now()
+    
+    // 更新任务状态为进行中
     return updateTodo(taskId, { status: 'in_progress' })
   }
 
-  const stopTimeTracking = async (taskId, actualHours) => {
+  const stopTimeTracking = async (taskId, manualHours = null) => {
     const task = todos.value.find(t => t.id === taskId)
     if (!task) throw new Error('任务不存在')
 
+    let actualHours = 0
+    
+    if (manualHours !== null) {
+      // 使用手动输入的时间
+      actualHours = manualHours
+    } else if (timeTrackingState.value[taskId]) {
+      // 计算自动追踪的时间
+      const startTime = timeTrackingState.value[taskId]
+      const endTime = Date.now()
+      const durationMs = endTime - startTime
+      actualHours = Math.round((durationMs / (1000 * 60 * 60)) * 100) / 100 // 保留两位小数
+      
+      // 清除追踪状态
+      delete timeTrackingState.value[taskId]
+    }
+
+    // 累加到现有的actual_hours
+    const currentActualHours = task.actual_hours || 0
+    const newActualHours = currentActualHours + actualHours
+
     return updateTodo(taskId, {
-      actual_hours: actualHours,
+      actual_hours: newActualHours,
       status: task.completed ? 'completed' : 'todo'
     })
+  }
+
+  // 检查任务是否正在追踪时间
+  const isTimeTracking = (taskId) => {
+    return !!timeTrackingState.value[taskId]
+  }
+
+  // 获取当前追踪时间
+  const getCurrentTrackingTime = (taskId) => {
+    const startTime = timeTrackingState.value[taskId]
+    if (!startTime) return 0
+    
+    const currentTime = Date.now()
+    const durationMs = currentTime - startTime
+    return Math.round((durationMs / (1000 * 60 * 60)) * 100) / 100 // 小时，保留两位小数
   }
 
   // 生产力分析
@@ -692,6 +731,8 @@ export const useTodoStore = defineStore('todo', () => {
     canStartTask,
     startTimeTracking,
     stopTimeTracking,
+    isTimeTracking,
+    getCurrentTrackingTime,
     getProductivityStats,
     exportTodos,
     importTodos,

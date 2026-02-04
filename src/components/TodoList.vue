@@ -732,13 +732,27 @@ const startTimeTracking = async (todoId) => {
 }
 
 const stopTimeTracking = async (todoId) => {
-  const hours = prompt('请输入实际工作时间（小时）:')
-  if (hours && !isNaN(parseFloat(hours))) {
-    try {
-      await todoStore.stopTimeTracking(todoId, parseFloat(hours))
-    } catch (error) {
-      console.error('Stop time tracking failed:', error)
+  try {
+    // 检查是否有自动追踪的时间
+    const autoTrackedTime = todoStore.getCurrentTrackingTime(todoId)
+    
+    if (autoTrackedTime > 0) {
+      // 有自动追踪时间，询问用户是否使用
+      const useAutoTime = confirm(`检测到自动追踪时间 ${autoTrackedTime.toFixed(2)} 小时，是否使用？\n点击"取消"手动输入时间。`)
+      
+      if (useAutoTime) {
+        await todoStore.stopTimeTracking(todoId)
+        return
+      }
     }
+    
+    // 手动输入时间
+    const hours = prompt('请输入实际工作时间（小时）:')
+    if (hours && !isNaN(parseFloat(hours))) {
+      await todoStore.stopTimeTracking(todoId, parseFloat(hours))
+    }
+  } catch (error) {
+    console.error('Stop time tracking failed:', error)
   }
 }
 
