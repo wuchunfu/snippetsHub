@@ -113,14 +113,24 @@ pub fn copy_to_clipboard(_content: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn check_command_available(command: String) -> Result<bool, String> {
-    let output = Command::new("which")
-        .arg(&command)
-        .output()
-        .or_else(|_| Command::new("where").arg(&command).output());
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut cmd = Command::new("where");
+        cmd.arg(&command);
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        match cmd.output() {
+            Ok(output) => Ok(output.status.success()),
+            Err(_) => Ok(false),
+        }
+    }
 
-    match output {
-        Ok(output) => Ok(output.status.success()),
-        Err(_) => Ok(false),
+    #[cfg(not(target_os = "windows"))]
+    {
+        match Command::new("which").arg(&command).output() {
+            Ok(output) => Ok(output.status.success()),
+            Err(_) => Ok(false),
+        }
     }
 }
 

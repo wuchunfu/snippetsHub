@@ -49,7 +49,21 @@
     "shortDescription": "代码片段管理工具",
     "longDescription": "SnippetsHub 是一个功能强大的代码片段管理工具，提供智能搜索、快捷键管理、性能监控等专业功能，帮助开发者高效管理和使用代码片段。",
     "externalBin": [],
-    "resources": []
+    "resources": [],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "tsp": false,
+      "wix": null,
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine",
+        "languages": ["English", "SimpChinese"],
+        "template": null
+      }
+    }
   },
   "plugins": {
     "updater": {

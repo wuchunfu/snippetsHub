@@ -25,7 +25,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
-use tauri::Manager;
+use tauri::{Manager, Emitter};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -45,8 +45,12 @@ pub fn run() {
                         handle.manage(db);
                     }
                     Err(e) => {
-                        eprintln!("Failed to initialize database: {}", e);
-                        // Optional: emit an event to frontend to show error
+                        // Log error without using eprintln! to avoid console window
+                        #[cfg(debug_assertions)]
+                        println!("Failed to initialize database: {}", e);
+                        
+                        // Emit error event to frontend instead of console output
+                        let _ = handle.emit("database-error", format!("Failed to initialize database: {}", e));
                     }
                 }
             });

@@ -7,8 +7,8 @@
  * @version 1.0.0
  */
 
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Prevents additional console window on Windows in all builds
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
 fn main() {
     snippets_hub_lib::run()
