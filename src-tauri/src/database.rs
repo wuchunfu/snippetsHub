@@ -117,6 +117,17 @@ impl Database {
             .await
             .ok(); // Ignore error if column already exists
 
+        // Update existing todos with some progress values for testing
+        sqlx::query("UPDATE todos SET progress = 25 WHERE status = 'in_progress' AND progress = 0")
+            .execute(&self.pool)
+            .await
+            .ok(); // Ignore error if update fails
+
+        sqlx::query("UPDATE todos SET progress = 100 WHERE completed = true AND progress = 0")
+            .execute(&self.pool)
+            .await
+            .ok(); // Ignore error if update fails
+
         // Folders Table
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS folders (
@@ -1047,7 +1058,7 @@ impl Database {
             .map_err(|e| format!("Failed to serialize dependencies: {}", e))?;
 
         sqlx::query(
-            "INSERT INTO todos (id, title, description, status, priority, due_date, estimated_hours, assignee, project_id, parent_id, recurring_config, dependencies, completed, archived, created_by, updated_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO todos (id, title, description, status, priority, due_date, estimated_hours, progress, assignee, project_id, parent_id, recurring_config, dependencies, completed, archived, created_by, updated_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         )
         .bind(&id)
         .bind(&req.title)
@@ -1056,6 +1067,7 @@ impl Database {
         .bind(&req.priority)
         .bind(&req.due_date)
         .bind(req.estimated_hours)
+        .bind(0) // progress default to 0
         .bind(&req.assignee)
         .bind(&req.project_id)
         .bind(&req.parent_id)

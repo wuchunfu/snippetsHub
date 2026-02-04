@@ -43,7 +43,17 @@ import { ERROR_MESSAGES } from '../constants'
  */
 export function formatDate(timestamp, locale = 'zh-CN') {
   try {
-    const date = typeof timestamp === 'number' ? new Date(timestamp) : timestamp
+    let date
+    if (typeof timestamp === 'number') {
+      // 自动检测时间戳格式：如果小于某个阈值，认为是秒级时间戳
+      if (timestamp < 10000000000) {
+        date = new Date(timestamp * 1000) // 转换为毫秒
+      } else {
+        date = new Date(timestamp) // 已经是毫秒
+      }
+    } else {
+      date = timestamp
+    }
     return date.toLocaleDateString(locale)
   } catch (error) {
     console.error('Date formatting error:', error)
@@ -58,7 +68,20 @@ export function formatDate(timestamp, locale = 'zh-CN') {
  */
 export function formatRelativeTime(timestamp) {
   try {
-    const date = typeof timestamp === 'number' ? new Date(timestamp) : timestamp
+    let date
+    if (typeof timestamp === 'number') {
+      // 自动检测时间戳格式：如果小于某个阈值，认为是秒级时间戳
+      // 2000年1月1日的毫秒时间戳是946684800000，秒级是946684800
+      // 如果时间戳小于10000000000（约2001年），认为是秒级时间戳
+      if (timestamp < 10000000000) {
+        date = new Date(timestamp * 1000) // 转换为毫秒
+      } else {
+        date = new Date(timestamp) // 已经是毫秒
+      }
+    } else {
+      date = timestamp
+    }
+    
     const now = new Date()
     const diff = now - date
     const seconds = Math.floor(diff / 1000)

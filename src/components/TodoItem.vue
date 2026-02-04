@@ -63,21 +63,26 @@
         </div>
       </div>
 
-      <!-- Progress Bar for Tasks with Estimated Hours -->
-      <div v-if="todo.estimated_hours || todo.actual_hours" class="todo-progress">
+      <!-- Progress Bar for Tasks with Estimated Hours or Progress -->
+      <div v-if="todo.estimated_hours || todo.actual_hours || todo.progress > 0" class="todo-progress">
         <div class="progress-info">
           <span class="progress-text">
             <Clock :size="12" />
-            {{ todo.actual_hours || 0 }}h / {{ todo.estimated_hours || 0 }}h
+            <template v-if="todo.estimated_hours">
+              {{ todo.actual_hours || 0 }}h / {{ todo.estimated_hours || 0 }}h
+            </template>
+            <template v-else>
+              进度
+            </template>
           </span>
-          <span v-if="todo.estimated_hours" class="progress-percentage">
-            {{ Math.round(((todo.actual_hours || 0) / todo.estimated_hours) * 100) }}%
+          <span class="progress-percentage">
+            {{ getProgressPercentage() }}%
           </span>
         </div>
-        <div v-if="todo.estimated_hours" class="progress-bar">
+        <div class="progress-bar">
           <div 
             class="progress-fill" 
-            :style="{ width: Math.min(((todo.actual_hours || 0) / todo.estimated_hours) * 100, 100) + '%' }"
+            :style="{ width: getProgressPercentage() + '%' }"
           ></div>
         </div>
       </div>
@@ -216,6 +221,26 @@ const formatDate = (dateStr) => {
 
 const isOverdue = (dateStr) => {
   return dayjs(dateStr).isBefore(dayjs(), 'day')
+}
+
+const getProgressPercentage = () => {
+  // 优先使用 progress 字段（0-100）
+  if (props.todo.progress !== undefined && props.todo.progress > 0) {
+    return Math.min(props.todo.progress, 100)
+  }
+  
+  // 如果没有 progress 字段，使用时间计算
+  if (props.todo.estimated_hours && props.todo.estimated_hours > 0) {
+    const actualHours = props.todo.actual_hours || 0
+    return Math.min(Math.round((actualHours / props.todo.estimated_hours) * 100), 100)
+  }
+  
+  // 如果任务已完成，显示100%
+  if (props.todo.completed) {
+    return 100
+  }
+  
+  return 0
 }
 </script>
 
