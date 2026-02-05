@@ -8,9 +8,13 @@ SnippetsHub 是一款基于 **Tauri** 和 **Vue 3** 构建的现代化跨平台�
 ## 提供多种主题颜色
 ![Theme Preview](./imgs/snappestHub_theme.png)
 ## 代码片段管理
-![Snippet Management](./imgs/snappestHub_main.png)
-## 任务管理
+![Code Snippets](./imgs/code.png)
 
+## 任务管理
+![Task Management](./imgs/management.png)
+
+## Markdown 笔记
+![Markdown Notes](./imgs/note.png)
 
 ## 核心特性
 
@@ -29,7 +33,12 @@ SnippetsHub 是一款基于 **Tauri** 和 **Vue 3** 构建的现代化跨平台�
 - **数据库**: SQLite/SQLx
 - **UI 组件**: Lucide Icons, Custom CSS Variables
 
-## 快速开始
+## 安装包安装
+
+[https://github.com/Wangjien/snippetsHub/releases/tag/v1.0.2](https://github.com/Wangjien/snippetsHub/releases/tag/v1.0.2)
+![](./imgs/install.png)
+
+## 本地环境安装(需要有node和Rust环境)
 
 1. 克隆仓库
    ```bash
