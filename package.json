@@ -1,7 +1,7 @@
 {
   "name": "snippets_hub",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,9 +13,11 @@
     "@monaco-editor/loader": "^1.7.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
+    "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-fs": "^2.4.5",
     "@tauri-apps/plugin-global-shortcut": "^2.3.1",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-shell": "^2.3.4",
     "@tauri-apps/plugin-updater": "^2.9.0",
     "@vueuse/core": "^14.1.0",
@@ -30,6 +32,7 @@
     "monaco-editor": "^0.55.1",
     "monaco-vim": "^0.4.4",
     "pinia": "^3.0.4",
+    "vditor": "^3.11.2",
     "vue": "^3.5.13",
     "vue-router": "^4.6.4",
     "vue-toastification": "^2.0.0-rc.5"

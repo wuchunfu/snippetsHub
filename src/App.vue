@@ -107,8 +107,8 @@
       @cancel="handleCancel"
     />
 
-    <!-- 更新管理器 -->
-    <UpdateManager />
+    <!-- 应用更新检查器 -->
+    <UpdateChecker />
 
     <!-- 加载状态 -->
     <LoadingSpinner v-if="appStore.isLoading" overlay />
@@ -147,6 +147,7 @@ import LoadingSpinner from './components/LoadingSpinner.vue'
 
 // 懒加载的组件
 const SnippetList = defineAsyncComponent(() => import('./components/SnippetList.vue'))
+const UpdateChecker = defineAsyncComponent(() => import('./components/UpdateChecker.vue'))
 const CodeEditor = defineAsyncComponent(() => import('./components/CodeEditor.vue'))
 const EditorTabs = defineAsyncComponent(() => import('./components/EditorTabs.vue'))
 const CommandPalette = defineAsyncComponent(() => import('./components/CommandPalette.vue'))

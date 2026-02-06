@@ -186,35 +186,55 @@
       "identifier": "fs:allow-read",
       "allow": [
         "$APPDATA/**",
-        "$APPCACHE/**"
+        "$APPCACHE/**",
+        "$HOME/**",
+        "$DESKTOP/**",
+        "$DOCUMENT/**",
+        "$DOWNLOAD/**"
       ]
     },
     {
       "identifier": "fs:allow-write",
       "allow": [
         "$APPDATA/**",
-        "$APPCACHE/**"
+        "$APPCACHE/**",
+        "$HOME/**",
+        "$DESKTOP/**",
+        "$DOCUMENT/**",
+        "$DOWNLOAD/**"
       ]
     },
     {
       "identifier": "fs:allow-mkdir",
       "allow": [
         "$APPDATA/**",
-        "$APPCACHE/**"
+        "$APPCACHE/**",
+        "$HOME/**",
+        "$DESKTOP/**",
+        "$DOCUMENT/**",
+        "$DOWNLOAD/**"
       ]
     },
     {
       "identifier": "fs:allow-read-dir",
       "allow": [
         "$APPDATA/**",
-        "$APPCACHE/**"
+        "$APPCACHE/**",
+        "$HOME/**",
+        "$DESKTOP/**",
+        "$DOCUMENT/**",
+        "$DOWNLOAD/**"
       ]
     },
     {
       "identifier": "fs:allow-exists",
       "allow": [
         "$APPDATA/**",
-        "$APPCACHE/**"
+        "$APPCACHE/**",
+        "$HOME/**",
+        "$DESKTOP/**",
+        "$DOCUMENT/**",
+        "$DOWNLOAD/**"
       ]
     }
   ]

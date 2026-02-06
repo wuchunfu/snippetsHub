@@ -332,6 +332,13 @@
               <span class="tech-badge">Monaco Editor</span>
             </div>
 
+            <div class="about-actions">
+              <button @click="checkForUpdates" class="btn-update" :disabled="checkingUpdate">
+                <component :is="checkingUpdate ? 'Loader2' : 'Download'" :size="18" :class="{ 'spinning': checkingUpdate }" />
+                {{ checkingUpdate ? '检查中...' : '检查更新' }}
+              </button>
+            </div>
+
             <div class="about-links">
               <a href="#" class="about-link">
                 <Github :size="18" />
@@ -376,7 +383,7 @@ import { ref, computed, onMounted } from 'vue'
 import { 
   Settings, Palette, Code2, Database, Keyboard, Info, ChevronRight,
   Monitor, Sun, Moon, Eye, Contrast, Type, Map, WrapText, Indent, Hash,
-  Download, Upload, Trash2, AlertTriangle, Package, Github, FileText, Bug, Cloud, Terminal, Wrench
+  Download, Upload, Trash2, AlertTriangle, Package, Github, FileText, Bug, Cloud, Terminal, Wrench, Loader2
 } from 'lucide-vue-next'
 import { useThemeStore } from '../stores/themeStore'
 import { APP_VERSION } from '../constants'
@@ -439,6 +446,53 @@ const systemInfo = ref({
   arch: 'arm64',
   tauriVersion: '2.0.0'
 })
+
+// 检查更新状态
+const checkingUpdate = ref(false)
+
+/**
+ * 检查应用更新
+ */
+const checkForUpdates = async () => {
+  checkingUpdate.value = true
+  
+  try {
+    // 动态导入 check 函数
+    const { check } = await import('@tauri-apps/plugin-updater')
+    
+    console.log('开始检查更新...')
+    const update = await check()
+    
+    if (update) {
+      console.log('发现新版本:', update.version)
+      // 触发 UpdateChecker 组件显示对话框
+      window.dispatchEvent(new CustomEvent('show-update-dialog', { 
+        detail: { update } 
+      }))
+    } else {
+      alert('🎉 当前已是最新版本！')
+    }
+  } catch (error) {
+    console.error('检查更新失败:', error)
+    
+    // 提供更友好的错误提示
+    let errorMsg = '检查更新失败'
+    
+    if (error.message) {
+      if (error.message.includes('GITHUB_REPOSITORY')) {
+        errorMsg = '更新功能尚未配置\n\n请先在 GitHub 上发布应用版本后再使用此功能。'
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMsg = '网络连接失败\n\n请检查您的网络连接后重试。'
+      } else {
+        errorMsg = `检查更新失败\n\n${error.message}`
+      }
+    }
+    
+    alert(errorMsg)
+  } finally {
+    checkingUpdate.value = false
+  }
+}
 
 // 获取快捷键显示
 const getShortcutKey = () => {
@@ -1048,6 +1102,49 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 500;
   color: var(--color-text-secondary);
+}
+
+.about-actions {
+  margin-bottom: 20px;
+}
+
+.btn-update {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-update:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.btn-update:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-update .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .about-links {
