@@ -17,10 +17,17 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
-import 'devicon/devicon.min.css'
 
 // 记录启动时间
 const startTime = performance.now()
+
+// 异步加载 devicon CSS（非关键，延迟加载）
+const loadDevicon = () => {
+  import('devicon/devicon.min.css').catch(() => {
+    console.warn('Failed to load devicon CSS')
+  })
+}
+setTimeout(loadDevicon, 100)
 
 // 创建应用实例
 const app = createApp(App)

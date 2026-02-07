@@ -119,11 +119,13 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useMarkdownStore } from '../stores/markdownStore'
+import { useConfirm } from '../composables/useConfirm'
 import { Plus, Search, X, FileText, Edit2, Trash2, Type, Clock } from 'lucide-vue-next'
 
 const emit = defineEmits(['open-document', 'create-document'])
 
 const markdownStore = useMarkdownStore()
+const { showConfirm } = useConfirm()
 const searchQuery = ref('')
 
 const documents = computed(() => markdownStore.documents)
@@ -158,8 +160,16 @@ const renameDoc = (doc) => {
   }
 }
 
-const deleteDoc = (docId) => {
-  if (confirm('确定要删除这个文档吗？此操作无法撤销。')) {
+const deleteDoc = async (docId) => {
+  const confirmed = await showConfirm(
+    '确定要删除这个文档吗？此操作无法撤销。',
+    {
+      title: '删除文档',
+      confirmText: '删除'
+    }
+  )
+  
+  if (confirmed) {
     markdownStore.deleteDocument(docId)
   }
 }

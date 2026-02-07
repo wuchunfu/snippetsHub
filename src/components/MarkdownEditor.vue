@@ -37,6 +37,24 @@
           已保存 {{ markdownStore.lastSaved }}
         </span>
 
+        <!-- 图片上传按钮 -->
+        <button @click="triggerImageUpload" class="icon-btn" title="上传图片">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </button>
+        <input 
+          ref="imageUploadInput" 
+          type="file" 
+          accept="image/*" 
+          style="display: none" 
+          @change="handleImageUpload"
+        />
+
+        <div class="divider-vertical"></div>
+
         <!-- 编辑模式切换按钮组 -->
         <div class="mode-switcher">
           <button 
@@ -183,10 +201,62 @@ const markdownStore = useMarkdownStore()
 // 编辑器相关的响应式引用
 const vditorRef = ref(null) // Vditor 容器 DOM 引用
 const vditor = ref(null) // Vditor 实例引用
+const imageUploadInput = ref(null) // 图片上传 input 引用
 const showOutline = ref(false) // 是否显示目录大纲
 const showHistory = ref(false) // 是否显示历史记录侧边栏
 const showExportDialog = ref(false) // 是否显示导出对话框
 const editorMode = ref('wysiwyg') // 当前编辑模式：wysiwyg(分屏) / ir(即时) / sv(源码)
+
+// 触发图片上传
+const triggerImageUpload = () => {
+  console.log('Trigger image upload clicked')
+  imageUploadInput.value?.click()
+}
+
+// 处理图片上传
+const handleImageUpload = async (event) => {
+  console.log('handleImageUpload called')
+  const file = event.target.files?.[0]
+  if (!file) {
+    console.log('No file selected')
+    return
+  }
+
+  console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type)
+
+  try {
+    // 将文件转换为 base64
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const base64 = e.target.result
+      console.log('File converted to base64, length:', base64.length)
+      
+      // 插入 Markdown 图片语法到编辑器
+      const markdownImage = `\n![${file.name}](${base64})\n`
+      
+      if (vditor.value) {
+        // 获取当前内容和光标位置
+        const currentValue = vditor.value.getValue()
+        // 在当前位置插入图片
+        vditor.value.insertValue(markdownImage)
+        console.log('Image inserted into editor')
+      }
+    }
+    
+    reader.onerror = (error) => {
+      console.error('FileReader error:', error)
+      alert('图片读取失败')
+    }
+    
+    reader.readAsDataURL(file)
+  } catch (error) {
+    console.error('Image upload error:', error)
+    alert('图片上传失败: ' + error.message)
+  }
+  
+  // 清空 input，允许重复上传同一文件
+  event.target.value = ''
+}
 
 // 组件挂载后初始化编辑器
 onMounted(async () => {
@@ -235,9 +305,6 @@ onMounted(async () => {
         'undo',
         'redo',
         '|',
-        'upload',
-        'record',
-        '|',
         'edit-mode',
         'outline',
         'preview',
@@ -253,17 +320,58 @@ onMounted(async () => {
 
       // 上传配置
       upload: {
-        accept: 'image/*,.mp3, .wav, .ogg',
+        accept: 'image/*',
         multiple: false,
-        filename(name) {
-          return name.replace(/[^(a-zA-Z0-9\u4e00-\u9fa5\.)]/g, '')
-            .replace(/[\?\\/:|<>\*\[\]\(\)\$%\{\}@~]/g, '')
-            .replace('/\\s/g', '')
-        },
         handler(files) {
-          // 这里可以集成文件上传功能
-          console.log('Files to upload:', files)
-          return null
+          console.log('=== Upload handler called ===')
+          console.log('Files:', files)
+          
+          return new Promise((resolve) => {
+            const file = files[0]
+            if (!file) {
+              console.error('No file selected')
+              resolve(null)
+              return
+            }
+
+            console.log('File name:', file.name)
+            console.log('File size:', file.size)
+            console.log('File type:', file.type)
+
+            const reader = new FileReader()
+            
+            reader.onload = () => {
+              const base64 = reader.result
+              console.log('Base64 length:', base64.length)
+              console.log('Base64 preview:', base64.substring(0, 100))
+              
+              // 返回格式必须符合 Vditor 要求
+              const result = {
+                msg: '',
+                code: 0,
+                data: {
+                  errFiles: [],
+                  succMap: {
+                    [file.name]: base64
+                  }
+                }
+              }
+              
+              console.log('Resolve result:', JSON.stringify(result).substring(0, 200))
+              resolve(result)
+            }
+            
+            reader.onerror = (error) => {
+              console.error('Reader error:', error)
+              resolve({
+                msg: '读取失败',
+                code: 1,
+                data: { errFiles: [file.name], succMap: {} }
+              })
+            }
+            
+            reader.readAsDataURL(file)
+          })
         }
       },
 
@@ -300,8 +408,8 @@ onMounted(async () => {
           engine: 'KaTeX'
         },
         theme: {
-          current: 'light',
-          path: 'https://cdn.jsdelivr.net/npm/vditor/dist/css/content-theme'
+          current: 'light'
+          // 使用本地主题资源，支持离线使用
         }
       },
       
@@ -417,7 +525,6 @@ const switchMode = (mode) => {
         'line', 'quote', 'list', 'ordered-list', 'check', '|',
         'code', 'inline-code', 'link', 'table', '|',
         'undo', 'redo', '|',
-        'upload', 'record', '|',
         'edit-mode', 'outline', 'preview', 'fullscreen', '|',
         'help'
       ],
@@ -425,6 +532,61 @@ const switchMode = (mode) => {
       cache: { enable: false },
       counter: { enable: true, type: 'markdown' },
       outline: { enable: false },
+      
+      // 上传配置
+      upload: {
+        accept: 'image/*',
+        multiple: false,
+        handler(files) {
+          console.log('=== Upload handler called (switchMode) ===')
+          console.log('Files:', files)
+          
+          return new Promise((resolve) => {
+            const file = files[0]
+            if (!file) {
+              console.error('No file selected')
+              resolve(null)
+              return
+            }
+
+            console.log('File name:', file.name)
+            console.log('File size:', file.size)
+            console.log('File type:', file.type)
+
+            const reader = new FileReader()
+            
+            reader.onload = () => {
+              const base64 = reader.result
+              console.log('Base64 length:', base64.length)
+              
+              const result = {
+                msg: '',
+                code: 0,
+                data: {
+                  errFiles: [],
+                  succMap: {
+                    [file.name]: base64
+                  }
+                }
+              }
+              
+              console.log('Resolve result')
+              resolve(result)
+            }
+            
+            reader.onerror = (error) => {
+              console.error('Reader error:', error)
+              resolve({
+                msg: '读取失败',
+                code: 1,
+                data: { errFiles: [file.name], succMap: {} }
+              })
+            }
+            
+            reader.readAsDataURL(file)
+          })
+        }
+      },
       
       preview: {
         delay: 300,
@@ -515,19 +677,32 @@ const doExport = async (format) => {
         filename = `${markdownStore.documentTitle || '未命名文档'}.html`
         mimeType = 'text/html'
         
-        // 添加完整的 HTML 结构
+        // 添加完整的 HTML 结构（使用内联样式，支持离线）
         content = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${markdownStore.documentTitle || '未命名文档'}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor/dist/index.css" />
   <style>
-    body { max-width: 900px; margin: 40px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    body { max-width: 900px; margin: 40px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+    h1, h2, h3, h4, h5, h6 { margin-top: 24px; margin-bottom: 16px; font-weight: 600; line-height: 1.25; }
+    h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+    h3 { font-size: 1.25em; }
+    code { background-color: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }
+    pre { background-color: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    pre code { background-color: transparent; padding: 0; }
+    blockquote { padding: 0 1em; color: #6a737d; border-left: 0.25em solid #dfe2e5; margin: 0; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; }
+    table { border-collapse: collapse; width: 100%; }
+    table th, table td { border: 1px solid #dfe2e5; padding: 6px 13px; }
+    table tr:nth-child(2n) { background-color: #f6f8fa; }
   <\/style>
 </head>
-<body class="vditor-reset">
+<body>
   ${content}
 </body>
 </html>`
@@ -544,13 +719,25 @@ const doExport = async (format) => {
 <head>
   <meta charset="UTF-8">
   <title>${markdownStore.documentTitle || '未命名文档'}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor/dist/index.css" />
   <style>
-    @media print { body { max-width: none; } }
-    body { max-width: 900px; margin: 40px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    @media print { body { max-width: none; margin: 20px; } }
+    body { max-width: 900px; margin: 40px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+    h1, h2, h3, h4, h5, h6 { margin-top: 24px; margin-bottom: 16px; font-weight: 600; line-height: 1.25; page-break-after: avoid; }
+    h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+    h3 { font-size: 1.25em; }
+    code { background-color: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }
+    pre { background-color: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; page-break-inside: avoid; }
+    pre code { background-color: transparent; padding: 0; }
+    blockquote { padding: 0 1em; color: #6a737d; border-left: 0.25em solid #dfe2e5; margin: 0; }
+    a { color: #0366d6; text-decoration: none; }
+    img { max-width: 100%; page-break-inside: avoid; }
+    table { border-collapse: collapse; width: 100%; page-break-inside: avoid; }
+    table th, table td { border: 1px solid #dfe2e5; padding: 6px 13px; }
+    table tr:nth-child(2n) { background-color: #f6f8fa; }
   </style>
 </head>
-<body class="vditor-reset">
+<body>
   ${content}
   <script>window.print();<\/script>
 </body>

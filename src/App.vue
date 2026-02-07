@@ -258,6 +258,41 @@ const getCurrentThemeLabel = () => {
   return labels[themeStore.appliedTheme] || '未知主题'
 }
 
+// 延迟初始化的 stores 标记
+const initializedStores = ref({
+  todo: false,
+  markdown: false,
+  cloud: false
+})
+
+// 按需初始化 stores
+const initializeStoreIfNeeded = async (storeName) => {
+  if (initializedStores.value[storeName]) return
+  
+  console.log(`Initializing ${storeName} store...`)
+  
+  try {
+    switch (storeName) {
+      case 'todo':
+        const { useTodoStore } = await import('./stores/todoStore')
+        const todoStore = useTodoStore()
+        await todoStore.initialize()
+        break
+      case 'markdown':
+        const { useMarkdownStore } = await import('./stores/markdownStore')
+        const markdownStore = useMarkdownStore()
+        markdownStore.initialize()
+        break
+      case 'cloud':
+        cloudStore.init()
+        break
+    }
+    initializedStores.value[storeName] = true
+  } catch (err) {
+    console.error(`Failed to initialize ${storeName} store:`, err)
+  }
+}
+
 onMounted(() => { // No async to prevent blocking mount
   const initStartTime = performance.now()
   
@@ -266,13 +301,14 @@ onMounted(() => { // No async to prevent blocking mount
     appStore.initialize()
     themeStore.initializeTheme()
     
-    // 第二阶段：数据加载 (非阻塞，并行执行)
+    // 第二阶段：只加载代码片段数据 (首页需要)
     // 不使用 await，让 UI 立即渲染，数据加载后自动更新
     Promise.all([
       snippetStore.loadSnippets(),
       snippetStore.loadFolders()
-    ]).then(async () => {
-      // 数据加载完成
+    ]).then(() => {
+      const loadTime = performance.now() - initStartTime
+      console.log(`初始数据加载完成 in ${Math.round(loadTime)}ms`)
     }).catch(err => {
       console.error('Data loading failed:', err)
       error('数据加载失败: ' + err.message)
@@ -532,10 +568,24 @@ const registerGlobalShortcuts = () => {
   registerShortcut('Cmd+6', () => handleNavigate('about'), { description: '关于' })
 }
 
-const handleNavigate = (view) => {
+const handleNavigate = async (view) => {
   appStore.setCurrentView(view)
   showEditorView.value = false
   selectedFolderId.value = null
+  
+  // 按需初始化对应的 store
+  switch (view) {
+    case 'todo':
+      await initializeStoreIfNeeded('todo')
+      break
+    case 'markdown':
+      await initializeStoreIfNeeded('markdown')
+      break
+    case 'settings':
+      // 云同步功能在设置面板中使用
+      initializeStoreIfNeeded('cloud') // 不 await，后台加载
+      break
+  }
   
   // 设置键盘快捷键上下文
   setContext(view === 'code' ? 'list' : 'global')
