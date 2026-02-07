@@ -43,7 +43,7 @@ markdown更新，改用vditor（https://github.com/Vanessa219/vditor），再这
 ## 安装包安装
 
 [https://github.com/Wangjien/snippetsHub/releases](https://github.com/Wangjien/snippetsHub/releases)
-![](./imgs/install.png)
+**请选择最新版本安装**
 
 ## 本地环境安装(需要有node和Rust环境)
 
