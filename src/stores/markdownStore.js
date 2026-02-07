@@ -89,6 +89,10 @@ try {
 // 如果需要自定义渲染，可以在convertToHtml函数中处理
 
 export const useMarkdownStore = defineStore('markdown', () => {
+  // 多文档管理状态
+  const documents = ref([]) // 所有文档列表
+  const currentDocumentId = ref(null) // 当前编辑的文档 ID
+  
   // 状态
   const content = ref('')
   const isLoading = ref(false)
@@ -234,15 +238,123 @@ export const useMarkdownStore = defineStore('markdown', () => {
     }
   }
 
+  // 计算属性：当前文档
+  const currentDocument = computed(() => {
+    if (!currentDocumentId.value) return null
+    return documents.value.find(doc => doc.id === currentDocumentId.value)
+  })
+
+  // 文档管理方法
+  const loadDocuments = () => {
+    try {
+      const savedDocuments = storage.get('snippetshub_markdown_documents', [])
+      documents.value = savedDocuments
+      
+      // 如果没有文档，创建一个默认文档
+      if (documents.value.length === 0) {
+        createDocument('新建文档')
+      }
+    } catch (error) {
+      console.error('Failed to load documents:', error)
+    }
+  }
+
+  const saveDocuments = () => {
+    try {
+      storage.set('snippetshub_markdown_documents', documents.value)
+    } catch (error) {
+      console.error('Failed to save documents:', error)
+    }
+  }
+
+  const createDocument = (title = '无标题文档') => {
+    const newDoc = {
+      id: Date.now().toString(),
+      title,
+      content: '',
+      tags: [],
+      createdAt: new Date().toISOString(),
+      modifiedAt: new Date().toISOString()
+    }
+    documents.value.unshift(newDoc)
+    saveDocuments()
+    return newDoc
+  }
+
+  const deleteDocument = (docId) => {
+    const index = documents.value.findIndex(doc => doc.id === docId)
+    if (index !== -1) {
+      documents.value.splice(index, 1)
+      saveDocuments()
+      
+      // 如果删除的是当前文档，清空编辑器
+      if (currentDocumentId.value === docId) {
+        currentDocumentId.value = null
+        content.value = ''
+        documentTitle.value = ''
+        documentTags.value = []
+      }
+    }
+  }
+
+  const switchDocument = (docId) => {
+    // 保存当前文档
+    if (currentDocumentId.value && hasUnsavedChanges.value) {
+      saveCurrentDocument()
+    }
+
+    // 加载新文档
+    const doc = documents.value.find(d => d.id === docId)
+    if (doc) {
+      currentDocumentId.value = docId
+      content.value = doc.content || ''
+      documentTitle.value = doc.title || ''
+      documentTags.value = doc.tags || []
+      createdAt.value = doc.createdAt
+      modifiedAt.value = doc.modifiedAt
+      
+      // 重置历史记录
+      history.value = [doc.content || '']
+      historyIndex.value = 0
+      hasUnsavedChanges.value = false
+      
+      clearHtmlCache()
+    }
+  }
+
+  const saveCurrentDocument = () => {
+    if (!currentDocumentId.value) return
+    
+    const doc = documents.value.find(d => d.id === currentDocumentId.value)
+    if (doc) {
+      doc.content = content.value
+      doc.title = documentTitle.value || '无标题文档'
+      doc.tags = documentTags.value
+      doc.modifiedAt = new Date().toISOString()
+      saveDocuments()
+      hasUnsavedChanges.value = false
+      lastSaved.value = new Date().toLocaleTimeString('zh-CN')
+    }
+  }
+
+  const renameDocument = (docId, newTitle) => {
+    const doc = documents.value.find(d => d.id === docId)
+    if (doc) {
+      doc.title = newTitle
+      if (currentDocumentId.value === docId) {
+        documentTitle.value = newTitle
+      }
+      saveDocuments()
+    }
+  }
+
   // 方法
   const loadContent = () => {
     try {
       isLoading.value = true
-      const savedContent = storage.get(STORAGE_KEYS.MARKDOWN_CONTENT, '')
       const savedTheme = storage.get(STORAGE_KEYS.MARKDOWN_THEME, 'github')
       const savedSettings = storage.get(STORAGE_KEYS.MARKDOWN_SETTINGS, {})
 
-      content.value = savedContent
       currentTheme.value = savedTheme
 
       // 加载编辑器设置
@@ -255,18 +367,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
       autoSave.value = savedSettings.autoSave !== false
       autoSaveInterval.value = savedSettings.autoSaveInterval || 30000
 
-      // 加载文档元数据
-      const metadata = storage.get(STORAGE_KEYS.MARKDOWN_METADATA, {})
-      documentTitle.value = metadata.title || ''
-      documentTags.value = metadata.tags || []
-      createdAt.value = metadata.createdAt || new Date().toISOString()
-      modifiedAt.value = metadata.modifiedAt || new Date().toISOString()
-
-      hasUnsavedChanges.value = false
-
-      // 初始化历史记录
-      history.value = [savedContent]
-      historyIndex.value = 0
+      // 加载所有文档
+      loadDocuments()
 
       // 启动自动保存
       startAutoSave()
@@ -280,7 +382,6 @@ export const useMarkdownStore = defineStore('markdown', () => {
 
   const saveContent = () => {
     try {
-      storage.set(STORAGE_KEYS.MARKDOWN_CONTENT, content.value)
       storage.set(STORAGE_KEYS.MARKDOWN_THEME, currentTheme.value)
 
       // 保存编辑器设置
@@ -296,18 +397,8 @@ export const useMarkdownStore = defineStore('markdown', () => {
       }
       storage.set(STORAGE_KEYS.MARKDOWN_SETTINGS, settings)
 
-      // 保存文档元数据
-      const metadata = {
-        title: documentTitle.value,
-        tags: documentTags.value,
-        createdAt: createdAt.value,
-        modifiedAt: new Date().toISOString()
-      }
-      storage.set(STORAGE_KEYS.MARKDOWN_METADATA, metadata)
-      modifiedAt.value = metadata.modifiedAt
-
-      lastSaved.value = new Date().toLocaleTimeString('zh-CN')
-      hasUnsavedChanges.value = false
+      // 保存当前文档到文档列表
+      saveCurrentDocument()
 
       // 创建快照 (最大保留20个)
       createSnapshot()
@@ -835,6 +926,11 @@ Authorization: Bearer <token>
   }
 
   return {
+    // 多文档状态
+    documents,
+    currentDocumentId,
+    currentDocument,
+    
     // 状态
     content,
     isLoading,
@@ -865,6 +961,15 @@ Authorization: Bearer <token>
     documentStructure,
     canUndo,
     canRedo,
+
+    // 文档管理方法
+    loadDocuments,
+    saveDocuments,
+    createDocument,
+    deleteDocument,
+    switchDocument,
+    saveCurrentDocument,
+    renameDocument,
 
     // 方法
     loadContent,

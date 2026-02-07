@@ -33,10 +33,10 @@
               <h2>{{ activePlatformData.title }}</h2>
               <p>{{ activePlatformData.description }}</p>
             </div>
-            <a :href="activePlatformData.docsUrl" target="_blank" class="help-link">
+            <button @click="openExternalLink(activePlatformData.docsUrl)" class="help-link">
               <HelpCircle :size="16" />
               <span>配置指南</span>
-            </a>
+            </button>
           </div>
 
           <!-- 未连接状态：配置表单 -->
@@ -61,7 +61,7 @@
                 <div class="helper-text">
                   <Info :size="14" />
                   <span>需要 {{ activePlatformData.scope }} 权限。</span>
-                  <a :href="activePlatformData.tokenUrl" target="_blank">点击此处创建 Token &rarr;</a>
+                  <button @click="openExternalLink(activePlatformData.tokenUrl)" class="helper-link-btn">点击此处创建 Token &rarr;</button>
                 </div>
               </div>
 
@@ -148,12 +148,40 @@
                 </div>
                 
                 <div class="upload-form">
-                  <div class="select-label">选择本地代码片段</div>
-                  <div class="select-wrapper">
+                  <div class="content-type-tabs">
+                    <button 
+                      class="type-tab" 
+                      :class="{ active: contentType === 'snippet' }"
+                      @click="contentType = 'snippet'"
+                    >
+                      <Code2 :size="14" />
+                      代码片段
+                    </button>
+                    <button 
+                      class="type-tab" 
+                      :class="{ active: contentType === 'markdown' }"
+                      @click="contentType = 'markdown'"
+                    >
+                      <FileText :size="14" />
+                      Markdown 文档
+                    </button>
+                  </div>
+                  
+                  <div class="select-label">选择要同步的内容</div>
+                  <div class="select-wrapper" v-if="contentType === 'snippet'">
                     <select v-model="selectedSnippetId" class="custom-select">
-                      <option value="">-- 请选择 --</option>
+                      <option value="">-- 请选择代码片段 --</option>
                       <option v-for="snippet in snippets" :key="snippet.id" :value="snippet.id">
                         {{ getSnippetStatusIcon(snippet.id) }} {{ snippet.title }}
+                      </option>
+                    </select>
+                    <ChevronDown :size="16" class="select-arrow" />
+                  </div>
+                  <div class="select-wrapper" v-else>
+                    <select v-model="selectedMarkdownId" class="custom-select">
+                      <option value="">-- 请选择 Markdown 文档 --</option>
+                      <option v-for="doc in markdownDocuments" :key="doc.id" :value="doc.id">
+                        {{ getSnippetStatusIcon(doc.id) }} {{ doc.title }}
                       </option>
                     </select>
                     <ChevronDown :size="16" class="select-arrow" />
@@ -202,8 +230,8 @@
                   </div>
                   
                   <div v-else class="empty-selection">
-                    <Code2 :size="48" class="empty-icon-faded" />
-                    <p>选择一个片段开始同步</p>
+                    <component :is="contentType === 'snippet' ? Code2 : FileText" :size="48" class="empty-icon-faded" />
+                    <p>选择一个{{ contentType === 'snippet' ? '代码片段' : 'Markdown 文档' }}开始同步</p>
                   </div>
                 </div>
               </div>
@@ -302,9 +330,12 @@ import {
 } from 'lucide-vue-next'
 import { useSnippetStore } from '../stores/snippetStore'
 import { useCloudStore } from '../stores/cloudStore'
+import { useMarkdownStore } from '../stores/markdownStore'
+import { open } from '@tauri-apps/plugin-shell'
 
 const snippetStore = useSnippetStore()
 const cloudStore = useCloudStore()
+const markdownStore = useMarkdownStore()
 
 // --- State ---
 const activePlatform = ref('github')
@@ -320,7 +351,9 @@ const giteeGists = ref([])
 const gitlabGists = ref([])
 
 // Upload State
+const contentType = ref('snippet') // 'snippet' or 'markdown'
 const selectedSnippetId = ref('')
+const selectedMarkdownId = ref('')
 const uploadDescription = ref('')
 const uploadFilename = ref('')
 
@@ -395,7 +428,23 @@ const recentGists = computed(() => {
   return gitlabGists.value
 })
 const snippets = computed(() => snippetStore.snippets || [])
-const selectedSnippet = computed(() => snippets.value.find(s => s.id === selectedSnippetId.value))
+const markdownDocuments = computed(() => markdownStore.documents || [])
+const selectedSnippet = computed(() => {
+  if (contentType.value === 'snippet') {
+    return snippets.value.find(s => s.id === selectedSnippetId.value)
+  } else {
+    const doc = markdownDocuments.value.find(d => d.id === selectedMarkdownId.value)
+    if (doc) {
+      return {
+        id: doc.id,
+        title: doc.title,
+        code: doc.content,
+        language: 'markdown'
+      }
+    }
+  }
+  return null
+})
 
 const isAutoSyncEnabled = computed(() => cloudStore.autoSyncSettings[activePlatform.value])
 
@@ -735,6 +784,16 @@ const isPublic = (gist) => gist.public
 const getFileCount = (gist) => gist.files ? Object.keys(gist.files).length : 0
 const formatDate = (d) => new Date(d).toLocaleDateString()
 
+// 打开外部链接
+const openExternalLink = async (url) => {
+  try {
+    await open(url)
+  } catch (e) {
+    console.error('Failed to open external link:', e)
+    showToast('error', '打开失败', '无法打开外部链接')
+  }
+}
+
 onMounted(() => {
   cloudStore.init()
   // Try to restore session if token exists
@@ -745,10 +804,24 @@ onMounted(() => {
 })
 
 watch(selectedSnippetId, () => {
-  if(selectedSnippet.value) {
+  if(selectedSnippet.value && contentType.value === 'snippet') {
     uploadDescription.value = selectedSnippet.value.title || ''
     uploadFilename.value = ''
   }
+})
+
+watch(selectedMarkdownId, () => {
+  if(selectedSnippet.value && contentType.value === 'markdown') {
+    uploadDescription.value = selectedSnippet.value.title || ''
+    uploadFilename.value = ''
+  }
+})
+
+watch(contentType, () => {
+  selectedSnippetId.value = ''
+  selectedMarkdownId.value = ''
+  uploadDescription.value = ''
+  uploadFilename.value = ''
 })
 </script>
 
@@ -772,7 +845,7 @@ watch(selectedSnippetId, () => {
 .panel-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
 .panel-header h2 { font-size: 18px; font-weight: 700; margin: 0 0 4px 0; color: var(--color-text-primary); }
 .panel-header p { color: var(--color-text-secondary); font-size: 14px; margin: 0; }
-.help-link { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-primary); text-decoration: none; padding: 6px 12px; background: rgba(var(--color-primary), 0.1); border-radius: 20px; transition: all 0.2s; }
+.help-link { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-primary); text-decoration: none; padding: 6px 12px; background: rgba(var(--color-primary), 0.1); border-radius: 20px; transition: all 0.2s; border: none; cursor: pointer; }
 .help-link:hover { background: rgba(var(--color-primary), 0.2); }
 
 /* Config Card */
@@ -788,6 +861,8 @@ watch(selectedSnippetId, () => {
 .toggle-btn { position: absolute; right: 8px; background: none; border: none; color: var(--color-text-tertiary); cursor: pointer; padding: 4px; }
 .helper-text { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--color-text-tertiary); }
 .helper-text a { color: var(--color-primary); text-decoration: none; }
+.helper-link-btn { background: none; border: none; padding: 0; color: var(--color-primary); font-size: 12px; cursor: pointer; text-decoration: none; transition: opacity 0.2s; }
+.helper-link-btn:hover { opacity: 0.8; text-decoration: underline; }
 .visibility-selector { display: flex; gap: 12px; }
 .visibility-option { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-background); color: var(--color-text-secondary); cursor: pointer; font-size: 13px; transition: all 0.2s; }
 .visibility-option.selected { background: var(--color-primary); border-color: var(--color-primary); color: white; }
@@ -821,6 +896,12 @@ watch(selectedSnippetId, () => {
 
 /* Left Upload Panel */
 .upload-form { padding: 20px; display: flex; flex-direction: column; gap: 16px; min-height: 300px; }
+
+.content-type-tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+.type-tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-background); color: var(--color-text-secondary); cursor: pointer; font-size: 13px; transition: all 0.2s; }
+.type-tab:hover { background: var(--color-background-tertiary); color: var(--color-text-primary); }
+.type-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+
 .select-label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: -8px; }
 .select-wrapper { position: relative; }
 .custom-select { width: 100%; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-background); color: var(--color-text-primary); font-size: 14px; appearance: none; cursor: pointer; }

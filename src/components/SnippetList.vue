@@ -896,7 +896,7 @@ import {
   Plus, Search, Filter, Code2, Tag, Calendar, Pencil, Trash2, Grid, List, Star, Clock, TrendingUp,
   MoreVertical, MoreHorizontal, Copy, Hash, Play, Zap, FileText, Database, Globe, Smartphone, 
   Server, Cpu, Palette, X, ArrowUpDown, Edit, LayoutGrid, Rows, Search as SearchIcon, Github, GitGraph, Loader2, Gitlab, ChevronDown,
-  Download, ChevronRight, FileCode, Archive, CheckSquare
+  Download, ChevronRight, FileCode, Archive, CheckSquare, BarChart3
 } from 'lucide-vue-next'
 import { useToast } from "vue-toastification"
 import { useVirtualList } from '../composables/useVirtualList'
@@ -953,7 +953,7 @@ const handleSync = async (snippet, platform) => {
   }
 }
 
-const emit = defineEmits(['create', 'select', 'edit', 'delete', 'favorite'])
+const emit = defineEmits(['create', 'select', 'edit', 'delete', 'favorite', 'navigate'])
 
 // 响应式状态
 const searchQuery = ref('')
@@ -1055,7 +1055,7 @@ const languageIcons = {
   dockerfile: 'devicon-docker-plain',
   graphql: 'devicon-graphql-plain',
   lua: 'devicon-lua-plain',
-  r: 'devicon-r-original',
+  r: BarChart3,
   matlab: 'devicon-matlab-plain',
   perl: 'devicon-perl-plain',
   haskell: 'devicon-haskell-plain',
@@ -2265,8 +2265,14 @@ const handleModeChange = (mode) => {
 const handleContentModeChange = (mode) => {
   console.log('Content mode change clicked:', mode, 'current:', contentMode.value)
   try {
-    contentMode.value = mode
-    performanceMonitor.recordInteraction('change-content-mode', { mode })
+    if (mode === 'markdown') {
+      // 点击“文档”按钮时，导航到 Markdown 文档列表视图
+      emit('navigate', 'markdown')
+      performanceMonitor.recordInteraction('navigate-to-markdown')
+    } else {
+      contentMode.value = mode
+      performanceMonitor.recordInteraction('change-content-mode', { mode })
+    }
   } catch (error) {
     console.error('Error changing content mode:', error)
   }

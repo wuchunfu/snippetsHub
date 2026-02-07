@@ -167,7 +167,14 @@ import MarkdownOutline from './MarkdownOutline.vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 
-// 定义组件的 emit 事件
+// 定义组件的 props 和 emit 事件
+const props = defineProps({
+  documentId: {
+    type: String,
+    default: null
+  }
+})
+
 const emit = defineEmits(['back'])
 
 // 使用 Pinia store 管理 Markdown 状态
@@ -189,6 +196,11 @@ onMounted(async () => {
   // 从 localStorage 加载之前保存的文档数据
   markdownStore.initialize()
   markdownStore.loadSnapshots() // 加载历史快照
+  
+  // 如果有指定文档 ID，加载该文档
+  if (props.documentId) {
+    markdownStore.switchDocument(props.documentId)
+  }
 
   // 初始化 Vditor 编辑器（需要确保 DOM 已渲染）
   if (vditorRef.value) {
@@ -361,6 +373,19 @@ onMounted(async () => {
 watch(() => markdownStore.content, (newContent) => {
   if (vditor.value && vditor.value.getValue() !== newContent) {
     vditor.value.setValue(newContent)
+  }
+})
+
+// 监听文档 ID 变化，切换文档
+watch(() => props.documentId, (newId) => {
+  if (newId && vditor.value) {
+    markdownStore.switchDocument(newId)
+    // 更新编辑器内容
+    nextTick(() => {
+      if (vditor.value) {
+        vditor.value.setValue(markdownStore.content || '')
+      }
+    })
   }
 })
 

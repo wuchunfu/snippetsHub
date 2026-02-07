@@ -40,6 +40,7 @@
         @edit="showEditor"
         @delete="deleteSnippet"
         @favorite="toggleFavorite"
+        @navigate="handleNavigate"
       />
 
       <!-- TODO 视图 -->
@@ -59,9 +60,16 @@
       />
 
       <!-- Markdown 视图 -->
+      <MarkdownDocumentList
+        v-if="appStore.currentView === 'markdown' && !editingMarkdownId"
+        @open-document="openMarkdownDocument"
+        @create-document="createMarkdownDocument"
+      />
+      
       <MarkdownEditor 
-        v-if="appStore.currentView === 'markdown'" 
-        @back="appStore.setCurrentView('code')"
+        v-if="appStore.currentView === 'markdown' && editingMarkdownId" 
+        :document-id="editingMarkdownId"
+        @back="closeMarkdownEditor"
       />
 
       <!-- 设置和关于视图 -->
@@ -153,6 +161,7 @@ const EditorTabs = defineAsyncComponent(() => import('./components/EditorTabs.vu
 const CommandPalette = defineAsyncComponent(() => import('./components/CommandPalette.vue'))
 const TodoListModern = defineAsyncComponent(() => import('./components/TodoListModern.vue'))
 const FavoritesView = defineAsyncComponent(() => import('./components/FavoritesView.vue'))
+const MarkdownDocumentList = defineAsyncComponent(() => import('./components/MarkdownDocumentList.vue'))
 const MarkdownEditor = defineAsyncComponent(() => import('./components/MarkdownEditor.vue'))
 const SettingsPanel = defineAsyncComponent(() => import('./components/SettingsPanel.vue'))
 const NotificationSystem = defineAsyncComponent(() => import('./components/NotificationSystem.vue'))
@@ -167,6 +176,9 @@ const cloudStore = useCloudStore()
 const editorStore = useEditorStore()
 const { success, error, info } = useNotifications()
 const { confirmState, handleConfirm, handleCancel } = useConfirm()
+
+// Markdown 文档管理
+const editingMarkdownId = ref(null)
 
 // Auto Sync Timers
 const syncTimers = {}
@@ -673,8 +685,25 @@ const handleModeSelect = (mode) => {
     // Small delay to ensure view transition
     setTimeout(() => showEditor(null), 50)
   } else if (mode === 'markdown') {
-    appStore.setCurrentView('markdown')
+    createMarkdownDocument()
   }
+}
+
+// Markdown 文档管理方法
+const openMarkdownDocument = (docId) => {
+  editingMarkdownId.value = docId
+}
+
+const createMarkdownDocument = () => {
+  appStore.setCurrentView('markdown')
+  // 延迟一帧确保组件已渲染
+  nextTick(() => {
+    // MarkdownDocumentList 会触发创建
+  })
+}
+
+const closeMarkdownEditor = () => {
+  editingMarkdownId.value = null
 }
 </script>
 

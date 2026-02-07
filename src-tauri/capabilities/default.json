@@ -182,6 +182,7 @@
       ]
     },
     "shell:allow-stdin-write",
+    "shell:allow-open",
     {
       "identifier": "fs:allow-read",
       "allow": [
